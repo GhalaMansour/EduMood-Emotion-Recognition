@@ -17,5 +17,5 @@ env/
 *.mp4
 *.avi
 
-# DeepFace weights (تنزل تلقائياً، لا ترفعينها)
+# DeepFace weights 
 *.h5
