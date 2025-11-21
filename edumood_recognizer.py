@@ -10,9 +10,8 @@ import pandas as pd
 
 class EduMoodSessionStats:
     """
-    تخزن سجلات المشاعر خلال جلسة واحدة.
-    كل record عبارة عن:
-    recorded_at + عدد الوجوه لكل شعور
+ Stores emotion records for a single session.
+Each record contains: recorded_at + the number of faces detected for each emotion
     """
 
     def __init__(self):
@@ -40,9 +39,9 @@ class EduMoodSessionStats:
 
 class EduMoodRecognizer:
     """
-    يقرأ فريمات الفيديو من الكاميرا (عن طريق streamlit-webrtc),
-    يقلب الصورة زي المراية,
-    ويحلل المشاعر كل N فريم باستخدام DeepFace.
+ Reads video frames from the webcam (via streamlit-webrtc),
+mirrors the image for a natural display,
+and analyzes emotions every N frames using DeepFace
     """
 
     def __init__(self, session_stats: EduMoodSessionStats, analyze_every_n: int = 5):
@@ -51,17 +50,17 @@ class EduMoodRecognizer:
         self.frame_count = 0
         self.last_annotated = None
 
-        # كاشف الوجوه (Haar Cascade)
+        # Face detector (Haar Cascade)
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         )
 
     def _analyze_frame(self, img_bgr):
         """
-        يحلل فريم واحد:
-        - يكتشف الوجوه
-        - لكل وجه يستخرج dominant_emotion من DeepFace
-        - يرسم المربعات والـ labels فوق الصورة
+     Analyzes a single frame:
+-Detects faces
+-Extracts the dominant emotion for each face using DeepFace
+-Draws bounding boxes and labels on the image
         """
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(
@@ -78,7 +77,7 @@ class EduMoodRecognizer:
                     face_roi, actions=["emotion"], enforce_detection=False
                 )
 
-                # DeepFace أحياناً يرجع list، أحياناً dict
+                # DeepFace may return a list or a dictionary
                 if isinstance(result, list):
                     dom = result[0].get("dominant_emotion", "").lower()
                 else:
@@ -87,7 +86,7 @@ class EduMoodRecognizer:
                 if dom:
                     emotions.append(dom)
 
-                # نرسم المربع والـ label
+                # draw rectangle and label
                 cv2.rectangle(img_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.putText(
                     img_bgr,
@@ -99,37 +98,37 @@ class EduMoodRecognizer:
                     2,
                 )
             except Exception:
-                # نطنّش أي خطأ في الفريم هذا (مثلاً فشل DeepFace)
+                # Ignore any frame-level errors (e.g., DeepFace failure)
                 continue
 
         return img_bgr, emotions
 
     def recognize(self, frame: av.VideoFrame) -> av.VideoFrame:
         """
-        هذه الدالة تُستدعى من streamlit-webrtc على كل فريم.
-        ترجع فريم معرّف (مرسوم فوقه المربعات والمشاعر).
+     Called by streamlit-webrtc for each video frame.
+Returns a processed frame annotated with bounding boxes and emotions.
         """
         self.frame_count += 1
 
-        # نحول الفريم لـ numpy
+        # Convert the frame to a numpy array
         img = frame.to_ndarray(format="bgr24")
 
-        # نقلب الصورة زي المراية
+        # Mirror the image for a natural display
         img = cv2.flip(img, 1)
 
-        # نحلل فقط كل N فريم لتخفيف الضغط
+        # Analyze only every Nth frame to reduce computational load
         if self.frame_count % self.analyze_every_n != 0:
-            # لو ما عندنا annotated سابق، نرجع الصورة العادية
+            # If no previous annotated frame exists, return the raw image
             if self.last_annotated is None:
                 return av.VideoFrame.from_ndarray(img, format="bgr24")
-            # نرجع آخر فريم تم تحليله
+            # Reuse the last analyzed frame
             return av.VideoFrame.from_ndarray(self.last_annotated, format="bgr24")
 
-        # هنا الفريم اللي فعلاً بنحلله بـ DeepFace
+        # Analyze the frame with DeepFace
         annotated, emotions = self._analyze_frame(img)
         self.last_annotated = annotated
 
-        # نحدّث إحصائيات الجلسة لو فيه مشاعر
+        # Update session statistics if emotions were detected
         if emotions:
             counts = Counter([e.lower() for e in emotions])
 
