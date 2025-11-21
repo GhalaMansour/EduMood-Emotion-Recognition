@@ -42,7 +42,7 @@ st.title("Raw emotion records dataframe")
 st.dataframe(df)
 
 if not df.empty:
-    # نحول recorded_at إلى datetime ونخليه index
+    # Convert recorded_at to datetime and set it as the index
     df["recorded_at"] = pd.to_datetime(df["recorded_at"])
     df_indexed = df.set_index("recorded_at")
     st.subheader("Dataframe indexed by time")
