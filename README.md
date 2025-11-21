@@ -129,8 +129,6 @@ This ensures transparency and proper documentation for AI lifecycle reporting.
 
 ## 📌 8. Project Structure
 
-Recommended clean project folder after removing unnecessary files:
-
 ```
 EduMood/
 │
