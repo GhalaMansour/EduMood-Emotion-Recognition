@@ -5,26 +5,26 @@ import altair as alt
 
 from edumood_recognizer import EduMoodRecognizer, EduMoodSessionStats
 
-# إعداد صفحة Streamlit
+#   Streamlit Environment Setup
 st.set_page_config(layout="wide")
 st.sidebar.title("EduMood – Students Emotion Recognition")
 
 st.title("EduMood – Face Emotion Detection in Classrooms")
 st.subheader("Press start to capture students in the classroom!")
 
-# نجهز إحصائيات جلسة واحدة ونخزنها في session_state
+# Prepare single-session statistics and store them in session_state
 if "session_stats" not in st.session_state:
     st.session_state["session_stats"] = EduMoodSessionStats()
 
 session_stats: EduMoodSessionStats = st.session_state["session_stats"]
 
 
-# Callback نهاية الفيديو (اختياري)
+# Optional end-of-stream callback
 def endVideo():
     print("Video has ended!")
 
 
-# نجهز الـ recognizer (هنا نتحكم كل كم فريم نحلّل)
+# Initialize the recognizer, which controls how frequently frames are analyzed
 recognizer = EduMoodRecognizer(session_stats, analyze_every_n=5)
 
 webrtc_streamer(
@@ -35,7 +35,7 @@ webrtc_streamer(
     on_video_ended=endVideo,
 )
 
-# ================== جزء التقارير (مبني على فكرة Kevin) ==================
+# Report section (inspired by Kevin’s design)
 
 df = session_stats.to_dataframe()
 st.title("Raw emotion records dataframe")
@@ -48,15 +48,15 @@ if not df.empty:
     st.subheader("Dataframe indexed by time")
     st.dataframe(df_indexed)
 
-    # نحدد أعمدة المشاعر فقط
+    # Select only the emotion-related columns
     emotion_cols = ["happy", "sad", "angry", "surprise", "neutral", "disgusted", "fearful"]
 
-    # مجموع عدد المرات التي ظهر فيها كل شعور خلال الجلسة
+    # Total number of occurrences of each emotion during the session
     st.title("Total students by emotion (sum)")
     df_grouped = df_indexed[emotion_cols].sum().sort_values(ascending=False)
     st.dataframe(df_grouped)
 
-    # Metrics لكل شعور
+    # Metrics for each emotion
     st.title("Emotion metrics")
     col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
     col1.metric("Happy", int(df_grouped.get("happy", 0)))
@@ -67,12 +67,12 @@ if not df.empty:
     col6.metric("Disgusted", int(df_grouped.get("disgusted", 0)))
     col7.metric("Fearful", int(df_grouped.get("fearful", 0)))
 
-    # الشعور الأكثر تكراراً في الجلسة
+    # Most frequent emotion in the session
     st.title("Emotion with the highest total")
     st.write(df_grouped.idxmax())
     st.write(int(df_grouped.max()))
 
-    # خط زمني لتغيّر المشاعر مع الوقت
+    # Timeline showing how emotions change over time
     st.title("Total students by emotion over time")
     st.line_chart(df_indexed[emotion_cols])
 
