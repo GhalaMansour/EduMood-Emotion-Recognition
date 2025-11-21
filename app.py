@@ -5,26 +5,71 @@ import altair as alt
 
 from edumood_recognizer import EduMoodRecognizer, EduMoodSessionStats
 
-#   Streamlit Environment Setup
+# ========================= Cute Kids UI Theme ========================= #
+
+page_bg = """
+<style>
+.block-container {
+    background-color: #ffffff;
+    background-image:
+        radial-gradient(circle at 20% 20%, rgba(255,222,235,0.08) 12px, transparent 40px),
+        radial-gradient(circle at 80% 30%, rgba(215,243,255,0.08) 12px, transparent 40px),
+        radial-gradient(circle at 50% 80%, rgba(255,245,204,0.08) 12px, transparent 40px),
+        radial-gradient(circle at 30% 60%, rgba(229,255,214,0.08) 12px, transparent 40px);
+    background-size: 200px 200px;
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+
+/* Main Title Yellow Accent */
+h1 {
+    position: relative;
+    padding-left: 25px !important;
+    font-weight: 700;
+    color: #333;
+}
+
+h1:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 12px;
+    background-color: #FFD966;
+    border-radius: 6px;
+}
+
+/* Section Titles */
+h2, h3 {
+    padding-left: 20px;
+    border-left: 8px solid #FFD966;
+    color: #444;
+}
+</style>
+"""
+st.markdown(page_bg, unsafe_allow_html=True)
+
+# ========================= Streamlit Setup ========================= #
+
 st.set_page_config(layout="wide")
 st.sidebar.title("EduMood – Students Emotion Recognition")
 
-st.title("EduMood – Face Emotion Detection in Classrooms")
-st.subheader("Press start to capture students in the classroom!")
+st.title("Emotion Capture")
+st.markdown("A clear real-time view showing all detected emotions moment-by-moment.")
 
-# Prepare single-session statistics and store them in session_state
+# ========================= Session State ========================= #
+
 if "session_stats" not in st.session_state:
     st.session_state["session_stats"] = EduMoodSessionStats()
 
 session_stats: EduMoodSessionStats = st.session_state["session_stats"]
 
+# ========================= WebRTC Video Stream ========================= #
 
-# Optional end-of-stream callback
 def endVideo():
     print("Video has ended!")
 
-
-# Initialize the recognizer, which controls how frequently frames are analyzed
 recognizer = EduMoodRecognizer(session_stats, analyze_every_n=5)
 
 webrtc_streamer(
@@ -35,63 +80,171 @@ webrtc_streamer(
     on_video_ended=endVideo,
 )
 
-# Report section (inspired by Kevin’s design)
+# ========================= Emotion Table (Main First Table) ========================= #
 
 df = session_stats.to_dataframe()
-st.title("Raw emotion records dataframe")
-st.dataframe(df)
 
-if not df.empty:
-    # Convert recorded_at to datetime and set it as the index
-    df["recorded_at"] = pd.to_datetime(df["recorded_at"])
-    df_indexed = df.set_index("recorded_at")
-    st.subheader("Dataframe indexed by time")
-    st.dataframe(df_indexed)
+st.title("Emotion Capture")
+st.markdown("This table shows every emotion detected at each moment.")
 
-    # Select only the emotion-related columns
-    emotion_cols = ["happy", "sad", "angry", "surprise", "neutral", "disgusted", "fearful"]
+if df.empty:
+    st.info("No emotion data yet. Start the camera to begin detecting emotions.")
+    st.stop()
 
-    # Total number of occurrences of each emotion during the session
-    st.title("Total students by emotion (sum)")
-    df_grouped = df_indexed[emotion_cols].sum().sort_values(ascending=False)
-    st.dataframe(df_grouped)
+df_ordered = df[
+    ["recorded_at", "happy", "sad", "angry", "surprise",
+     "neutral", "disgusted", "fearful"]
+]
 
-    # Metrics for each emotion
-    st.title("Emotion metrics")
-    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-    col1.metric("Happy", int(df_grouped.get("happy", 0)))
-    col2.metric("Sad", int(df_grouped.get("sad", 0)))
-    col3.metric("Angry", int(df_grouped.get("angry", 0)))
-    col4.metric("Surprised", int(df_grouped.get("surprise", 0)))
-    col5.metric("Neutral", int(df_grouped.get("neutral", 0)))
-    col6.metric("Disgusted", int(df_grouped.get("disgusted", 0)))
-    col7.metric("Fearful", int(df_grouped.get("fearful", 0)))
+st.dataframe(df_ordered, use_container_width=True, hide_index=True)
 
-    # Most frequent emotion in the session
-    st.title("Emotion with the highest total")
-    st.write(df_grouped.idxmax())
-    st.write(int(df_grouped.max()))
+# ========================= Dashboard Data Prep ========================= #
 
-    # Timeline showing how emotions change over time
-    st.title("Total students by emotion over time")
-    st.line_chart(df_indexed[emotion_cols])
+df["recorded_at"] = pd.to_datetime(df["recorded_at"])
+df_indexed = df.set_index("recorded_at")
 
-    # -------------------------- Using Altair --------------------------
-    st.title("Total students per emotion (bar chart)")
+emotion_cols = ["happy", "sad", "angry", "surprise", "neutral", "disgusted", "fearful"]
+df_grouped = df_indexed[emotion_cols].sum().sort_values(ascending=False)
 
-    df_for_chart = df_grouped.reset_index()
-    df_for_chart.columns = ["emotion", "total_students"]
-    st.dataframe(df_for_chart)
+emotion_display = {
+    "happy": "Happy 😀",
+    "sad": "Sad 😢",
+    "angry": "Angry 😡",
+    "surprise": "Surprised 😮",
+    "neutral": "Neutral 😐",
+    "disgusted": "Disgusted 🤢",
+    "fearful": "Fearful 😨",
+}
 
-    source_dataframe = pd.DataFrame(df_for_chart)
+total_all = float(df_grouped.sum()) if df_grouped.sum() > 0 else 1.0
 
-    bar_chart = alt.Chart(source_dataframe).mark_bar().encode(
-        x=alt.X("emotion", title="Emotion"),
-        y=alt.Y("total_students", title="Total detections"),
-        color=alt.Color("emotion", legend=None),
+# ========================= Overall Summary ========================= #
+
+st.title("Overall Emotion Summary")
+st.markdown("A simple view showing how students felt during the class.")
+
+for key in emotion_cols:
+    count = int(df_grouped.get(key, 0))
+    pct = round((count / total_all) * 100, 1)
+    label = emotion_display.get(key, key)
+
+    st.markdown(
+        f"""
+        <div style="padding:10px; margin:5px 0; border-radius:12px;
+                    background:rgba(255,255,255,0.7); border:1px solid #e0e0e0;">
+            <strong>{label}</strong><br>
+            <span style="font-size:18px; font-weight:600;">{pct}%</span>
+            <span style="color:#777;"> ({count})</span>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.altair_chart(bar_chart, use_container_width=True)
+# ========================= Top 3 Emotions ========================= #
 
+st.title("Top 3 Emotions")
+st.markdown("These are the three most common emotions detected in class.")
+
+top3 = df_grouped.head(3)
+
+top3_df = pd.DataFrame({
+    "emotion_key": top3.index,
+    "emotion": [emotion_display.get(e, e) for e in top3.index],
+    "count": [int(v) for v in top3.values],
+})
+
+total_top3 = sum(top3.values) if sum(top3.values) > 0 else 1
+top3_df["percentage"] = round((top3_df["count"] / total_top3) * 100, 1)
+
+# Pie chart
+top3_pie = (
+    alt.Chart(top3_df)
+    .mark_arc(innerRadius=40)
+    .encode(
+        theta="count",
+        color="emotion",
+        tooltip=["emotion", "count", "percentage"],
+    )
+)
+st.altair_chart(top3_pie, use_container_width=True)
+
+# Highlight blocks
+st.subheader("Top Emotional Highlights")
+ranks = ["1st", "2nd", "3rd"]
+
+for rank, (_, row) in zip(ranks, top3_df.iterrows()):
+    st.markdown(
+        f"""
+        <div style="
+            padding:12px;
+            margin:8px 0;
+            border-radius:12px;
+            background:rgba(255, 255, 255, 0.7);
+            border:1px solid #e0e0e0;
+        ">
+            <strong style="font-size:16px;">{rank} – {row['emotion']}</strong><br>
+            <span style="color:#444; font-size:15px;">
+                {row['percentage']}% of the top emotions.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# ========================= Full Pie Chart ========================= #
+
+st.title("Emotion Distribution")
+st.markdown("A general look at how emotions were spread through the whole class.")
+
+pie_df = pd.DataFrame(
+    {
+        "emotion": [emotion_display.get(k, k) for k in df_grouped.index],
+        "count": [int(v) for v in df_grouped.values],
+    }
+)
+pie_df = pie_df[pie_df["count"] > 0]
+
+pie_chart = (
+    alt.Chart(pie_df)
+    .mark_arc(innerRadius=40)
+    .encode(
+        theta="count",
+        color="emotion",
+        tooltip=["emotion", "count"],
+    )
+)
+st.altair_chart(pie_chart, use_container_width=True)
+
+# ========================= Line Chart (Over Time) ========================= #
+
+st.title("Emotions Over Time")
+st.markdown("This chart shows how students' emotions changed throughout the class.")
+
+line_df = df_indexed[emotion_cols]
+
+if line_df.sum().sum() == 0:
+    st.info("Not enough data yet to draw the time-line chart.")
 else:
-    st.info("No emotion data yet. Start the camera and wait for detections to appear.")
+    st.line_chart(line_df)
+
+# ========================= Histogram ========================= #
+
+st.title("Emotion Histogram")
+st.markdown("A simple chart showing how many times each emotion appeared.")
+
+hist_df = df_grouped.reset_index()
+hist_df.columns = ["emotion", "count"]
+
+vertical_hist = (
+    alt.Chart(hist_df)
+    .mark_bar(size=40)
+    .encode(
+        x=alt.X("emotion:N", title="Emotion"),
+        y=alt.Y("count:Q", title="Frequency"),
+        color=alt.Color("emotion:N", legend=None),
+        tooltip=["emotion", "count"],
+    )
+)
+
+st.altair_chart(vertical_hist, use_container_width=True)
+
