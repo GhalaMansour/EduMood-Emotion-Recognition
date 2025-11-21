@@ -4,7 +4,7 @@
 
 ---
 
-## 📌 1. Overview
+##  1. Overview
 
 **EduMood** is an AI-powered system designed to recognize and analyze students’ facial emotions in real time using a webcam.
 The system captures video frames, detects faces, predicts emotions, stores aggregated session statistics, and visualizes the results through an interactive Streamlit dashboard.
@@ -15,7 +15,7 @@ following the full **AI lifecycle** methodology.
 
 ---
 
-## 📌 2. System Purpose
+##  2. System Purpose
 
 EduMood serves as an educational AI prototype that demonstrates:
 
@@ -28,7 +28,7 @@ The system builds a structured analytic pipeline similar to Kevin Aguirre’s pr
 
 ---
 
-## 📌 3. High-Level System Architecture
+##  3. High-Level System Architecture
 
 ```
 ┌────────────────────┐
@@ -62,7 +62,7 @@ The system builds a structured analytic pipeline similar to Kevin Aguirre’s pr
 
 ---
 
-## 📌 4. Technologies Used
+##  4. Technologies Used
 
 | Component            | Purpose                               |
 | -------------------- | ------------------------------------- |
@@ -76,7 +76,7 @@ The system builds a structured analytic pipeline similar to Kevin Aguirre’s pr
 
 ---
 
-## 📌 5. Emotion Model (DeepFace)
+##  5. Emotion Model (DeepFace)
 
 EduMood relies on **DeepFace’s built-in CNN expression model**, originally trained on **FER-2013**, to classify seven basic emotions:
 
@@ -97,11 +97,10 @@ EduMood relies on **DeepFace’s built-in CNN expression model**, originally tra
 5. Receive emotion probabilities
 6. Select the highest-scoring label
 
-> No retraining or fine-tuning was done — the system uses the model exactly as provided.
-
+> No retraining or fine-tuning was done 
 ---
 
-## 📌 6. Data Strategy
+##  6. Data Strategy
 
 EduMood follows a structured data-handling approach:
 
@@ -111,39 +110,25 @@ EduMood follows a structured data-handling approach:
 * Summaries are computed using aggregation (sum/mean)
 * The system imitates the data-handling strategy seen in Kevin’s project
 
-This ensures transparency and proper documentation for AI lifecycle reporting.
+---
+
+##  7. Key Features
+
+* **Real-time emotion recognition**
+*  **Live dashboard analytics**
+*  **Session accumulation** (every detection recorded)
+*  **Frame sampling** (analyze every N frames to reduce latency)
+*  **Mirror-mode** (camera flipped horizontally)
+*  **Bar charts, line charts, and KPI metrics**
+*  **Lightweight design suitable for classrooms and demos**
 
 ---
 
-## 📌 7. Key Features
 
-* 🔵 **Real-time emotion recognition**
-* 📊 **Live dashboard analytics**
-* 🧠 **Session accumulation** (every detection recorded)
-* 🎚 **Frame sampling** (analyze every N frames to reduce latency)
-* 🪞 **Mirror-mode** (camera flipped horizontally)
-* 📈 **Bar charts, line charts, and KPI metrics**
-* 🎯 **Lightweight design suitable for classrooms and demos**
 
 ---
 
-## 📌 8. Project Structure
-
-```
-EduMood/
-│
-├── app.py                     # Streamlit dashboard
-├── edumood_recognizer.py     # Recognition + session stats
-├── requirements.txt
-├── README.md                 # This documentation
-├── LICENSE                   # License file
-│
-└── assets/ (optional)        # Images / logos
-```
-
----
-
-## 📌 9. Installation
+## 8. Installation
 
 ```bash
 pip install -r requirements.txt
@@ -151,7 +136,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📌 10. Running the Application
+## 9. Running the Application
 
 ```bash
 streamlit run app.py
@@ -159,7 +144,7 @@ streamlit run app.py
 
 ---
 
-## 📌 11. Credits & References
+## 10. Credits & References
 
 This project integrates and refers to the following:
 
@@ -173,7 +158,7 @@ All external components are used under their respective licenses.
 
 ---
 
-## 📌 12. License
+## 11. License
 
 The project is distributed for **academic and educational use only**.
 Commercial use is not allowed unless a commercial license is obtained.
