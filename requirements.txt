@@ -1,3 +1,6 @@
+
+Required Libraries:
+
 streamlit
 streamlit-webrtc
 opencv-python
@@ -7,3 +10,37 @@ numpy
 pandas
 altair
 av
+
+
+---
+
+
+**streamlit**
+Used to build the interactive web dashboard for displaying video, metrics, and visual analytics.
+
+**streamlit-webrtc**
+Enables real-time webcam streaming inside Streamlit and provides frame callbacks for live processing.
+
+**opencv-python**
+Handles image processing tasks such as frame conversion, mirroring, and face detection.
+
+**deepface**
+Provides the pretrained Mini-Xception emotion recognition model and handles emotion inference.
+
+**tf_keras**
+Acts as the backend framework used by DeepFace for loading and running the CNN model.
+
+**numpy**
+Processes frame arrays and supports numerical operations required during image handling.
+
+**pandas**
+Stores session-level emotion records and generates DataFrames for analytics and reporting.
+
+**altair**
+Used to create charts such as timelines and bar graphs for emotion visualization in the dashboard.
+
+**av**
+Facilitates conversion between WebRTC video frames and NumPy arrays for real-time analysis.
+
+
+
