@@ -68,8 +68,13 @@ class EduMoodRecognizer:
         - Draws bounding boxes and labels on the image
         """
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+
+        #Light CLAHE to improve contrast in varying lighting conditions
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        gray = clahe.apply(gray)
+
         faces = self.face_cascade.detectMultiScale(
-            gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
         )
 
         emotions = []
