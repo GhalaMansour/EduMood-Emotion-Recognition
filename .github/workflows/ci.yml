@@ -1,22 +1,43 @@
 name: EduMood CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   quality-check:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # 1) اسحبوا الكود من الريبو
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      # 2) إعداد بايثون
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.9'
+          cache: 'pip'
 
-      - name: Basic pipeline smoke test
+      # 3) تثبيت المكتبات
+      - name: Install dependencies
         run: |
-          echo "✅ GitHub Actions is running for EduMood"
-          python --version
-          python -c "print('✅ EduMood CI pipeline is working (no heavy deps yet)')"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      # 4) فحص إن المكتبات الأساسية تشتغل
+      - name: Core imports health check
+        run: |
+          python -c "import streamlit; print('✅ Streamlit OK')"
+          python -c "from deepface import DeepFace; print('✅ DeepFace OK')"
+          python -c "import cv2; print('✅ OpenCV OK')"
+          python -c "import pandas as pd; print('✅ Pandas OK')"
+
+      # 5) تشغيل الاختبارات مع التغطية
+      - name: Run tests with coverage
+        run: |
+          pytest -v --cov=edumood_recognizer --cov-report=term-missing
