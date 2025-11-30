@@ -1,17 +1,18 @@
 import cv2
 from collections import Counter
 from datetime import datetime
-import uuid
-
+import time  # for latency measurement
 import av
 from deepface import DeepFace
 import pandas as pd
 
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class EduMoodSessionStats:
     """
- Stores emotion records for a single session.
-Each record contains: recorded_at + the number of faces detected for each emotion
+    Stores emotion records for a single session.
+    Each record contains: recorded_at + the number of faces detected for each emotion
     """
 
     def __init__(self):
@@ -39,9 +40,10 @@ Each record contains: recorded_at + the number of faces detected for each emotio
 
 class EduMoodRecognizer:
     """
- Reads video frames from the webcam (via streamlit-webrtc),
-mirrors the image for a natural display,
-and analyzes emotions every N frames using DeepFace
+    Reads video frames from the webcam (via streamlit-webrtc),
+    mirrors the image for a natural display,
+    and analyzes emotions every N frames using DeepFace.
+    Also tracks inference latency per analyzed frame.
     """
 
     def __init__(self, session_stats: EduMoodSessionStats, analyze_every_n: int = 5):
@@ -55,12 +57,15 @@ and analyzes emotions every N frames using DeepFace
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         )
 
+        # store all latency values (in ms) for analyzed frames
+        self.latency_records = []
+
     def _analyze_frame(self, img_bgr):
         """
-     Analyzes a single frame:
--Detects faces
--Extracts the dominant emotion for each face using DeepFace
--Draws bounding boxes and labels on the image
+        Analyzes a single frame:
+        - Detects faces
+        - Extracts the dominant emotion for each face using DeepFace
+        - Draws bounding boxes and labels on the image
         """
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(
@@ -97,16 +102,17 @@ and analyzes emotions every N frames using DeepFace
                     (0, 0, 255),
                     2,
                 )
-            except Exception:
-                # Ignore any frame-level errors (e.g., DeepFace failure)
+            except Exception as e:
+                logging.warning(f"[EduMood] DeepFace analysis failed: {e}")
                 continue
 
         return img_bgr, emotions
 
     def recognize(self, frame: av.VideoFrame) -> av.VideoFrame:
         """
-     Called by streamlit-webrtc for each video frame.
-Returns a processed frame annotated with bounding boxes and emotions.
+        Called by streamlit-webrtc for each video frame.
+        Returns a processed frame annotated with bounding boxes and emotions.
+        Also measures inference latency for analyzed frames.
         """
         self.frame_count += 1
 
@@ -124,8 +130,17 @@ Returns a processed frame annotated with bounding boxes and emotions.
             # Reuse the last analyzed frame
             return av.VideoFrame.from_ndarray(self.last_annotated, format="bgr24")
 
-        # Analyze the frame with DeepFace
+        # measure latency for this analyzed frame
+        start_time = time.time()
         annotated, emotions = self._analyze_frame(img)
+        end_time = time.time()
+
+        latency_ms = (end_time - start_time) * 1000.0
+        self.latency_records.append(latency_ms)
+
+        # print latency for this frame to terminal
+        logging.info(f"[EduMood] Latency this frame: {latency_ms:.1f} ms")
+
         self.last_annotated = annotated
 
         # Update session statistics if emotions were detected
@@ -150,3 +165,21 @@ Returns a processed frame annotated with bounding boxes and emotions.
             self.session_stats.add_record(record)
 
         return av.VideoFrame.from_ndarray(annotated, format="bgr24")
+
+    # print latency summary to terminal when stream ends
+    def print_latency_summary(self):
+        if not self.latency_records:
+            logging.info("[EduMood] No latency data collected.")
+            return
+
+        latencies = self.latency_records
+        avg_lat = sum(latencies) / len(latencies)
+        min_lat = min(latencies)
+        max_lat = max(latencies)
+
+        logging.info("\n================ LATENCY SUMMARY ================")
+        logging.info(f"Total analyzed frames: {len(latencies)}")
+        logging.info(f"Average latency: {avg_lat:.1f} ms")
+        logging.info(f"Minimum latency: {min_lat:.1f} ms")
+        logging.info(f"Maximum latency: {max_lat:.1f} ms")
+        logging.info("=================================================\n")
