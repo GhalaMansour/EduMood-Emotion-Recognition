@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 import pandas as pd
 import altair as alt
-
+import logging
 from edumood_recognizer import EduMoodRecognizer, EduMoodSessionStats
 
 # ========================= Cute Kids UI Theme ========================= #
@@ -67,10 +67,13 @@ session_stats: EduMoodSessionStats = st.session_state["session_stats"]
 
 # ========================= WebRTC Video Stream ========================= #
 
-def endVideo():
-    print("Video has ended!")
-
+# 👇 IMPORTANT: create recognizer first so endVideo can use it
 recognizer = EduMoodRecognizer(session_stats, analyze_every_n=5)
+
+def endVideo():
+    recognizer.print_latency_summary()
+    logging.info("Video has ended!")
+
 
 webrtc_streamer(
     key="edumood-example",
@@ -118,7 +121,7 @@ emotion_display = {
 
 total_all = float(df_grouped.sum()) if df_grouped.sum() > 0 else 1.0
 
-# ========================= Overall Summary ========================= #
+# ========================= Overall Emotion Summary ========================= #
 
 st.title("Overall Emotion Summary")
 st.markdown("A simple view showing how students felt during the class.")
@@ -247,4 +250,3 @@ vertical_hist = (
 )
 
 st.altair_chart(vertical_hist, use_container_width=True)
-
