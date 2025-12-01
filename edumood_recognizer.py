@@ -7,7 +7,10 @@ from deepface import DeepFace
 import pandas as pd
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 class EduMoodSessionStats:
     """
@@ -59,6 +62,9 @@ class EduMoodRecognizer:
 
         # store all latency values (in ms) for analyzed frames
         self.latency_records = []
+     # 🟢 session start time
+        self.session_start = datetime.now()
+        self.session_end = None
 
     def _analyze_frame(self, img_bgr):
         """
@@ -144,8 +150,12 @@ class EduMoodRecognizer:
         self.latency_records.append(latency_ms)
 
         # print latency for this frame to terminal
-        logging.info(f"[EduMood] Latency this frame: {latency_ms:.1f} ms")
-
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logging.info(f"[EduMood] {now_str} - Latency this frame: {latency_ms:.1f} ms")
+        
+        # 🟢 session end time
+        self.session_end = datetime.now()
+        
         self.last_annotated = annotated
 
         # Update session statistics if emotions were detected
@@ -182,9 +192,20 @@ class EduMoodRecognizer:
         min_lat = min(latencies)
         max_lat = max(latencies)
 
+        #  session duration🟢 
+        if self.session_end is None:
+            self.session_end = datetime.now()
+
+        duration_sec = (self.session_end - self.session_start).total_seconds()
+        duration_min = duration_sec / 60.0
+
+
         logging.info("\n================ LATENCY SUMMARY ================")
         logging.info(f"Total analyzed frames: {len(latencies)}")
         logging.info(f"Average latency: {avg_lat:.1f} ms")
         logging.info(f"Minimum latency: {min_lat:.1f} ms")
         logging.info(f"Maximum latency: {max_lat:.1f} ms")
+        logging.info(
+            f"Session duration:   {duration_sec:.1f} seconds (~{duration_min:.1f} minutes)"
+        )
         logging.info("=================================================\n")
